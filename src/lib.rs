@@ -40,7 +40,8 @@ pub use format::JsonFormat;
 #[cfg(feature = "plain")]
 pub use format::PlainTextFormat;
 pub use format::{
-    ErasedFormat, Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer, match_specificity,
+    Borrowable, Consumable, ErasedFormat, Format, MatchSpecificity, OwnedDeserializer,
+    OwnedSerializer, match_specificity,
 };
 pub use negotiated::NegotiatedFormat;
 pub use response::NegotiateResponse;

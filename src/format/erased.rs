@@ -85,8 +85,8 @@ where
         bytes: &[u8],
         body: &mut dyn FnMut(&mut dyn Deserializer<'_>) -> erased_serde::Result<()>,
     ) -> erased_serde::Result<()> {
-        let mut deserializer = <F as Format>::deserializer(self, bytes)?;
-        let mut erased = <dyn Deserializer<'_>>::erase(deserializer.as_deserializer());
+        let deserializer = <F as Format>::deserializer(self, bytes)?;
+        let mut erased = <dyn Deserializer<'_>>::erase(deserializer.into_deserializer());
         body(&mut erased)
     }
 }

@@ -8,7 +8,7 @@ use serde::{
     ser::{self, Impossible},
 };
 
-use super::{Format, OwnedDeserializer, OwnedSerializer};
+use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
 /// Plain text format (`text/plain; charset=utf-8`).
 ///
@@ -37,7 +37,7 @@ impl Format for PlainTextFormat {
         &'a self,
         bytes: &'a [u8],
     ) -> erased_serde::Result<impl OwnedDeserializer<'a> + 'a> {
-        Ok(PlainTextDeserializer { input: bytes })
+        Ok(Borrowable(PlainTextDeserializer { input: bytes }))
     }
 }
 

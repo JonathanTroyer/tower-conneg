@@ -4,7 +4,7 @@ use http::HeaderValue;
 use mediatype::MediaType;
 
 use super::plain_text::{PlainTextDeserializer, PlainTextSerializer};
-use super::{Format, OwnedDeserializer, OwnedSerializer};
+use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
 /// HTML format (`text/html; charset=utf-8`).
 ///
@@ -34,6 +34,6 @@ impl Format for HtmlFormat {
         &'a self,
         bytes: &'a [u8],
     ) -> erased_serde::Result<impl OwnedDeserializer<'a> + 'a> {
-        Ok(PlainTextDeserializer { input: bytes })
+        Ok(Borrowable(PlainTextDeserializer { input: bytes }))
     }
 }

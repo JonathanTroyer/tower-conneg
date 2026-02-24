@@ -16,68 +16,118 @@
 //! [`OwnedDeserializer`] bridges this gap:
 //!
 //! 1. `Format::deserializer()` returns an owned type implementing `OwnedDeserializer`
-//! 2. The caller stores this owned value
-//! 3. When ready to deserialize, call `as_deserializer()` to get the reference that
-//!    implements serde's `Deserializer`
+//! 2. Call `into_deserializer()` to consume it and get a `Deserializer`
 //!
-//! # How It Works
+//! # Two Patterns
 //!
-//! The trait uses a higher-ranked trait bound (`for<'a>`) to express that the
-//! deserializer can be borrowed for any lifetime. The private helper trait
-//! `OwnedDeserializerLifetime` captures the relationship between the owned type,
-//! the input data lifetime (`'de`), and the borrowed deserializer type.
+//! Deserializers come in two flavors:
 //!
-//! Most serde deserializers (like `serde_json::Deserializer<R>`) automatically implement
-//! `OwnedDeserializer` through the blanket impl, because `&mut T: Deserializer<'de>` holds.
+//! 1. **Borrowable** (like `serde_json::Deserializer`): Implements `Deserializer` for
+//!    `&mut Self`. Wrap these in [`Borrowable`] which implements `Deserializer` by
+//!    delegating to the inner `&mut T`.
+//!
+//! 2. **Consumable** (like `serde_urlencoded::Deserializer`): Implements `Deserializer`
+//!    only for the owned type. Wrap these in [`Consumable`] which simply returns the
+//!    inner deserializer.
 
-use serde::Deserializer;
+use serde::de::Visitor;
+use serde::{Deserializer, forward_to_deserialize_any};
 
-mod private {
-    use serde::Deserializer;
-
-    pub trait OwnedDeserializerLifetime<'de, 'a, Extra = &'a Self> {
-        type DeserializerLt: Deserializer<'de>;
-
-        fn get_deserializer(&'a mut self) -> Self::DeserializerLt;
-    }
-
-    impl<'de, 'a, T> OwnedDeserializerLifetime<'de, 'a> for T
-    where
-        T: ?Sized,
-        &'a mut T: Deserializer<'de>,
-    {
-        type DeserializerLt = &'a mut T;
-
-        fn get_deserializer(&'a mut self) -> Self::DeserializerLt {
-            self
-        }
-    }
-}
-
-/// A type that owns a deserializer and can provide a reference to it.
+/// A type that owns a deserializer and can be consumed to yield it.
 ///
-/// This trait bridges owned deserializer types with serde's reference-based
-/// [`Deserializer`] trait, allowing formats to manage deserializer lifetimes.
-pub trait OwnedDeserializer<'de>: for<'a> private::OwnedDeserializerLifetime<'de, 'a> {
-    /// The deserializer type returned by [`as_deserializer`](Self::as_deserializer).
-    type Deserializer<'a>: Deserializer<'de>
-    where
-        Self: 'a;
+/// This trait bridges owned deserializer types with serde's [`Deserializer`] trait,
+/// allowing formats to manage deserializer lifetimes.
+///
+/// Use [`Borrowable`] for deserializers where `&mut T: Deserializer`, and
+/// [`Consumable`] for deserializers where `T: Deserializer` directly.
+pub trait OwnedDeserializer<'de>: Sized {
+    /// The deserializer type returned by [`into_deserializer`](Self::into_deserializer).
+    type Deserializer: Deserializer<'de>;
 
-    /// Returns a reference to the underlying deserializer.
-    fn as_deserializer(&mut self) -> Self::Deserializer<'_>;
+    /// Consumes this wrapper and returns the underlying deserializer.
+    fn into_deserializer(self) -> Self::Deserializer;
 }
 
-impl<'de, T> OwnedDeserializer<'de> for T
-where
-    for<'a> T: private::OwnedDeserializerLifetime<'de, 'a>,
-{
-    type Deserializer<'a>
-        = <Self as private::OwnedDeserializerLifetime<'de, 'a>>::DeserializerLt
-    where
-        Self: 'a;
+/// Wrapper for deserializers where `&mut T: Deserializer` (borrowable pattern).
+///
+/// This wrapper implements [`Deserializer`] by delegating to `&mut self.0`,
+/// allowing borrowable deserializers to be used with [`OwnedDeserializer`].
+///
+/// # Example
+///
+/// ```ignore
+/// use tower_conneg::Borrowable;
+///
+/// fn deserializer<'a>(bytes: &'a [u8]) -> Borrowable<serde_json::Deserializer<...>> {
+///     Borrowable(serde_json::Deserializer::from_slice(bytes))
+/// }
+/// ```
+#[derive(Debug)]
+pub struct Borrowable<T>(pub T);
 
-    fn as_deserializer(&mut self) -> Self::Deserializer<'_> {
-        <Self as private::OwnedDeserializerLifetime<'de, '_>>::get_deserializer(self)
+impl<'de, T> Deserializer<'de> for Borrowable<T>
+where
+    for<'a> &'a mut T: Deserializer<'de>,
+{
+    type Error = erased_serde::Error;
+
+    fn deserialize_any<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        (&mut self.0)
+            .deserialize_any(visitor)
+            .map_err(serde::de::Error::custom)
+    }
+
+    forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf option unit unit_struct newtype_struct seq tuple
+        tuple_struct map struct enum identifier ignored_any
+    }
+}
+
+impl<'de, T> OwnedDeserializer<'de> for Borrowable<T>
+where
+    for<'a> &'a mut T: Deserializer<'de>,
+{
+    type Deserializer = Self;
+
+    fn into_deserializer(self) -> Self {
+        self
+    }
+}
+
+/// Wrapper for deserializers that consume `self` (consumable pattern).
+///
+/// This wrapper simply returns the inner deserializer when consumed.
+///
+/// # Example
+///
+/// ```ignore
+/// use tower_conneg::Consumable;
+///
+/// fn deserializer<'a>(bytes: &'a [u8]) -> Consumable<SomeDeserializer<'a>> {
+///     Consumable::new(SomeDeserializer::new(bytes))
+/// }
+/// ```
+#[derive(Debug)]
+pub struct Consumable<D>(D);
+
+impl<D> Consumable<D> {
+    /// Creates a new wrapper around a consumable deserializer.
+    pub fn new(deserializer: D) -> Self {
+        Self(deserializer)
+    }
+}
+
+impl<'de, D> OwnedDeserializer<'de> for Consumable<D>
+where
+    D: Deserializer<'de>,
+{
+    type Deserializer = D;
+
+    fn into_deserializer(self) -> D {
+        self.0
     }
 }

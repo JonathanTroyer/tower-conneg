@@ -85,8 +85,8 @@ fn json_format_roundtrip_serialization() {
         data.serialize(serializer.as_serializer()).unwrap();
     }
 
-    let mut deserializer = format.deserializer(&bytes).unwrap();
-    let result = TestStruct::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(&bytes).unwrap();
+    let result = TestStruct::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, data);
 }

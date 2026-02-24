@@ -19,7 +19,7 @@ pub use form::FormFormat;
 pub use html::HtmlFormat;
 #[cfg(feature = "json")]
 pub use json::JsonFormat;
-pub use owned_deserializer::OwnedDeserializer;
+pub use owned_deserializer::{Borrowable, Consumable, OwnedDeserializer};
 pub use owned_serializer::OwnedSerializer;
 #[cfg(feature = "plain")]
 pub use plain_text::PlainTextFormat;

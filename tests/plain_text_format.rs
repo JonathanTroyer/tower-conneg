@@ -84,8 +84,8 @@ fn plain_text_format_deserialize_string() {
     let format = PlainTextFormat;
     let bytes = b"Hello, world!";
 
-    let mut deserializer = format.deserializer(bytes).unwrap();
-    let result = String::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(bytes).unwrap();
+    let result = String::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, "Hello, world!");
 }
@@ -101,8 +101,8 @@ fn plain_text_format_roundtrip() {
         data.serialize(serializer.as_serializer()).unwrap();
     }
 
-    let mut deserializer = format.deserializer(&bytes).unwrap();
-    let result = String::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(&bytes).unwrap();
+    let result = String::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, data);
 }
@@ -147,8 +147,8 @@ fn plain_text_format_deserialize_integer_fails() {
     let format = PlainTextFormat;
     let bytes = b"42";
 
-    let mut deserializer = format.deserializer(bytes).unwrap();
-    let result = i32::deserialize(deserializer.as_deserializer());
+    let deserializer = format.deserializer(bytes).unwrap();
+    let result = i32::deserialize(deserializer.into_deserializer());
 
     assert!(result.is_err());
 }

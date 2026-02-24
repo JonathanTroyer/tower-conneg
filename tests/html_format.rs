@@ -84,8 +84,8 @@ fn html_format_deserialize_string() {
     let format = HtmlFormat;
     let bytes = b"<html><body>Hello</body></html>";
 
-    let mut deserializer = format.deserializer(bytes).unwrap();
-    let result = String::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(bytes).unwrap();
+    let result = String::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, "<html><body>Hello</body></html>");
 }
@@ -101,8 +101,8 @@ fn html_format_roundtrip() {
         data.serialize(serializer.as_serializer()).unwrap();
     }
 
-    let mut deserializer = format.deserializer(&bytes).unwrap();
-    let result = String::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(&bytes).unwrap();
+    let result = String::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, data);
 }

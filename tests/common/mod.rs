@@ -2,7 +2,7 @@
 
 use http::HeaderValue;
 use mediatype::MediaType;
-use tower_conneg::{Format, OwnedDeserializer, OwnedSerializer};
+use tower_conneg::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
 pub(crate) struct JsonFormat;
 
@@ -27,7 +27,7 @@ impl Format for JsonFormat {
         &'a self,
         bytes: &'a [u8],
     ) -> erased_serde::Result<impl OwnedDeserializer<'a> + 'a> {
-        Ok(serde_json::Deserializer::from_slice(bytes))
+        Ok(Borrowable(serde_json::Deserializer::from_slice(bytes)))
     }
 }
 
@@ -56,6 +56,6 @@ impl Format for XmlFormat {
         &'a self,
         bytes: &'a [u8],
     ) -> erased_serde::Result<impl OwnedDeserializer<'a> + 'a> {
-        Ok(serde_json::Deserializer::from_slice(bytes))
+        Ok(Borrowable(serde_json::Deserializer::from_slice(bytes)))
     }
 }

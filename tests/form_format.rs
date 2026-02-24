@@ -112,8 +112,8 @@ fn form_format_deserialize_struct() {
     let format = FormFormat;
     let bytes = b"field=hello&number=42";
 
-    let mut deserializer = format.deserializer(bytes).unwrap();
-    let result = TestStruct::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(bytes).unwrap();
+    let result = TestStruct::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(
         result,
@@ -138,8 +138,8 @@ fn form_format_roundtrip_struct() {
         data.serialize(serializer.as_serializer()).unwrap();
     }
 
-    let mut deserializer = format.deserializer(&bytes).unwrap();
-    let result = TestStruct::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(&bytes).unwrap();
+    let result = TestStruct::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, data);
 }
@@ -167,8 +167,8 @@ fn form_format_deserialize_url_encoded() {
     let format = FormFormat;
     let bytes = b"field=hello%20world&number=42";
 
-    let mut deserializer = format.deserializer(bytes).unwrap();
-    let result = TestStruct::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(bytes).unwrap();
+    let result = TestStruct::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(
         result,
@@ -194,8 +194,8 @@ fn form_format_login_form() {
         data.serialize(serializer.as_serializer()).unwrap();
     }
 
-    let mut deserializer = format.deserializer(&bytes).unwrap();
-    let result = LoginForm::deserialize(deserializer.as_deserializer()).unwrap();
+    let deserializer = format.deserializer(&bytes).unwrap();
+    let result = LoginForm::deserialize(deserializer.into_deserializer()).unwrap();
 
     assert_eq!(result, data);
 }

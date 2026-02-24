@@ -40,7 +40,7 @@ pub use html::HtmlFormat;
 #[cfg(feature = "json")]
 pub use json::JsonFormat;
 #[cfg(feature = "msgpack")]
-pub use msgpack::MsgPackFormat;
+pub use msgpack::{MsgPackFormat, MsgPackNamedFormat};
 pub use owned_deserializer::{Borrowable, Consumable, OwnedDeserializer};
 pub use owned_serializer::OwnedSerializer;
 #[cfg(feature = "plain")]

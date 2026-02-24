@@ -1,7 +1,5 @@
-//! Tower middleware for HTTP content negotiation.
-//!
-//! Provides automatic format selection based on `Accept` and `Content-Type` headers
-//! for both server and client use cases.
+#![doc = include_str!("../README.md")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 /// Accept-Post header (W3C LDP).
 pub(crate) const ACCEPT_POST: http::HeaderName = http::HeaderName::from_static("accept-post");
@@ -47,8 +45,6 @@ pub use format::FormFormat;
 pub use format::HtmlFormat;
 #[cfg(feature = "json")]
 pub use format::JsonFormat;
-#[cfg(feature = "msgpack")]
-pub use format::MsgPackFormat;
 #[cfg(feature = "plain")]
 pub use format::PlainTextFormat;
 #[cfg(feature = "postcard")]
@@ -61,3 +57,5 @@ pub use format::{
     Borrowable, Consumable, ErasedFormat, Format, MatchSpecificity, OwnedDeserializer,
     OwnedSerializer, match_specificity,
 };
+#[cfg(feature = "msgpack")]
+pub use format::{MsgPackFormat, MsgPackNamedFormat};

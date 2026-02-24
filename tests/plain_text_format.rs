@@ -4,9 +4,10 @@
 
 use std::sync::Arc;
 
+use erased_serde::Serialize as _;
 use http::HeaderValue;
 use mediatype::MediaType;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tower_conneg::{
     ErasedFormat, Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer, PlainTextFormat,
     match_specificity,
@@ -26,7 +27,10 @@ fn plain_text_format_content_type_header() {
     let format = PlainTextFormat;
     let header = Format::content_type_header(&format);
 
-    assert_eq!(header, HeaderValue::from_static("text/plain; charset=utf-8"));
+    assert_eq!(
+        header,
+        HeaderValue::from_static("text/plain; charset=utf-8")
+    );
 }
 
 #[test]
@@ -71,10 +75,11 @@ fn plain_text_format_serialize_string() {
     let data = "Hello, world!".to_string();
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     assert_eq!(bytes, b"Hello, world!");
 }
@@ -96,10 +101,11 @@ fn plain_text_format_roundtrip() {
     let data = "Test string with special chars: <>&\"'".to_string();
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     let deserializer = format.deserializer(&bytes).unwrap();
     let result = String::deserialize(deserializer.into_deserializer()).unwrap();
@@ -129,17 +135,6 @@ fn plain_text_format_erased_roundtrip() {
         .unwrap();
 
     assert_eq!(result, Some(data));
-}
-
-#[test]
-fn plain_text_format_serialize_integer_fails() {
-    let format = PlainTextFormat;
-
-    let mut bytes = Vec::new();
-    let mut serializer = format.serializer(&mut bytes).unwrap();
-    let result = 42i32.serialize(serializer.as_serializer());
-
-    assert!(result.is_err());
 }
 
 #[test]

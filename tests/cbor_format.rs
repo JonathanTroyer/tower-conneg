@@ -1,15 +1,15 @@
-//! Tests for the built-in JsonFormat.
+//! Tests for the built-in CborFormat.
 
-#![cfg(feature = "json")]
+#![cfg(feature = "cbor")]
 
 use std::sync::Arc;
 
 use erased_serde::Serialize as _;
 use http::HeaderValue;
-use mediatype::MediaType;
+use mediatype::{MediaType, Name, names::APPLICATION};
 use serde::{Deserialize, Serialize};
 use tower_conneg::{
-    ErasedFormat, Format, JsonFormat, MatchSpecificity, OwnedDeserializer, OwnedSerializer,
+    CborFormat, ErasedFormat, Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer,
     match_specificity,
 };
 
@@ -20,34 +20,37 @@ struct TestStruct {
 }
 
 #[test]
-fn json_format_media_types() {
-    let format = JsonFormat;
+fn cbor_format_media_types() {
+    let format = CborFormat;
     let types = format.media_types();
 
     assert_eq!(types.len(), 1);
-    assert_eq!(types[0], mediatype::media_type!(APPLICATION / JSON));
+    assert_eq!(
+        types[0],
+        MediaType::new(APPLICATION, Name::new_unchecked("cbor"))
+    );
 }
 
 #[test]
-fn json_format_content_type_header() {
-    let format = JsonFormat;
+fn cbor_format_content_type_header() {
+    let format = CborFormat;
     let header = Format::content_type_header(&format);
 
-    assert_eq!(header, HeaderValue::from_static("application/json"));
+    assert_eq!(header, HeaderValue::from_static("application/cbor"));
 }
 
 #[test]
-fn json_format_match_specificity_exact() {
-    let format = JsonFormat;
-    let media_type = mediatype::media_type!(APPLICATION / JSON);
+fn cbor_format_match_specificity_exact() {
+    let format = CborFormat;
+    let media_type = MediaType::new(APPLICATION, Name::new_unchecked("cbor"));
 
     let result = match_specificity(&format, &media_type);
     assert_eq!(result, Some(MatchSpecificity::Exact));
 }
 
 #[test]
-fn json_format_match_specificity_wildcard() {
-    let format = JsonFormat;
+fn cbor_format_match_specificity_wildcard() {
+    let format = CborFormat;
     let media_type = MediaType::parse("*/*").unwrap();
 
     let result = match_specificity(&format, &media_type);
@@ -55,8 +58,8 @@ fn json_format_match_specificity_wildcard() {
 }
 
 #[test]
-fn json_format_match_specificity_type_only() {
-    let format = JsonFormat;
+fn cbor_format_match_specificity_type_only() {
+    let format = CborFormat;
     let media_type = MediaType::parse("application/*").unwrap();
 
     let result = match_specificity(&format, &media_type);
@@ -64,8 +67,8 @@ fn json_format_match_specificity_type_only() {
 }
 
 #[test]
-fn json_format_match_specificity_none() {
-    let format = JsonFormat;
+fn cbor_format_match_specificity_none() {
+    let format = CborFormat;
     let media_type = mediatype::media_type!(TEXT / PLAIN);
 
     let result = match_specificity(&format, &media_type);
@@ -73,8 +76,8 @@ fn json_format_match_specificity_none() {
 }
 
 #[test]
-fn json_format_roundtrip_serialization() {
-    let format = JsonFormat;
+fn cbor_format_roundtrip_serialization() {
+    let format = CborFormat;
     let data = TestStruct {
         field: "hello".to_string(),
         number: 42,
@@ -94,8 +97,8 @@ fn json_format_roundtrip_serialization() {
 }
 
 #[test]
-fn json_format_erased_roundtrip() {
-    let format: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+fn cbor_format_erased_roundtrip() {
+    let format: Arc<dyn ErasedFormat> = Arc::new(CborFormat);
     let data = TestStruct {
         field: "test".to_string(),
         number: 123,
@@ -121,24 +124,48 @@ fn json_format_erased_roundtrip() {
 }
 
 #[test]
-fn json_format_is_default() {
-    let format = JsonFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("application/json")
+fn cbor_format_binary_compactness() {
+    let format = CborFormat;
+    let data = TestStruct {
+        field: "hello".to_string(),
+        number: 42,
+    };
+
+    let mut bytes = Vec::new();
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
+
+    let json_bytes = serde_json::to_vec(&data).unwrap();
+    assert!(
+        bytes.len() < json_bytes.len(),
+        "CBOR ({} bytes) should be more compact than JSON ({} bytes)",
+        bytes.len(),
+        json_bytes.len()
     );
 }
 
 #[test]
-fn json_format_is_debug() {
-    let format = JsonFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "JsonFormat");
+fn cbor_format_is_default() {
+    let format = CborFormat::default();
+    assert_eq!(
+        Format::content_type_header(&format),
+        HeaderValue::from_static("application/cbor")
+    );
 }
 
 #[test]
-fn json_format_is_clone() {
-    let format = JsonFormat;
+fn cbor_format_is_debug() {
+    let format = CborFormat;
+    let debug_str = format!("{:?}", format);
+    assert_eq!(debug_str, "CborFormat");
+}
+
+#[test]
+fn cbor_format_is_clone() {
+    let format = CborFormat;
     let cloned = format;
     assert_eq!(
         Format::content_type_header(&cloned),

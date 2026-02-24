@@ -1,83 +1,37 @@
 //! Owned serializer trait for bridging serde's reference-based serializers.
 //!
-//! # Why This Exists
-//!
-//! Serde's [`Serializer`] trait is typically implemented on references (`&mut T`), not
-//! owned types. For example, `serde_json::Serializer` implements `Serializer` via
-//! `&mut serde_json::Serializer`. This is efficient because it avoids moving the
-//! serializer on each operation.
-//!
-//! However, our [`Format::serializer()`](super::Format::serializer) method needs to
-//! return an owned value that the caller can store and use. We can't return a reference
-//! because there's nothing for it to reference yet.
-//!
-//! # The Solution
-//!
-//! [`OwnedSerializer`] bridges this gap:
-//!
-//! 1. `Format::serializer()` returns an owned type implementing `OwnedSerializer`
-//! 2. The caller stores this owned value
-//! 3. When ready to serialize, call `as_serializer()` to get the reference that
-//!    implements serde's `Serializer`
-//!
-//! # How It Works
-//!
-//! The trait uses a higher-ranked trait bound (`for<'a>`) to express that the
-//! serializer can be borrowed for any lifetime. The private helper trait
-//! `OwnedSerializerLifetime` captures the relationship between the owned type and
-//! the borrowed serializer type at each specific lifetime.
-//!
-//! Most serde serializers (like `serde_json::Serializer<W>`) automatically implement
-//! `OwnedSerializer` through the blanket impl, because `&mut T: Serializer` holds.
+//! Serde's [`Serializer`](serde::Serializer) trait is typically implemented on references
+//! (`&mut T`), not owned types. This module provides [`OwnedSerializer`] which abstracts
+//! over this pattern, allowing formats to return owned serializer values.
 
-use serde::Serializer;
+use erased_serde::Serializer as ErasedSerializer;
+use serde::ser::Serializer;
 
-mod private {
-    use serde::Serializer;
-
-    pub trait OwnedSerializerLifetime<'a, Extra = &'a Self> {
-        type SerializerLt: Serializer;
-
-        fn get_serializer(&'a mut self) -> Self::SerializerLt;
-    }
-
-    impl<'a, T> OwnedSerializerLifetime<'a> for T
-    where
-        T: ?Sized,
-        &'a mut T: Serializer,
-    {
-        type SerializerLt = &'a mut T;
-
-        fn get_serializer(&'a mut self) -> Self::SerializerLt {
-            self
-        }
-    }
-}
-
-/// A type that owns a serializer and can provide a reference to it.
+/// A type that owns a serializer and can provide erased access to it.
 ///
-/// This trait bridges owned serializer types with serde's reference-based
-/// [`Serializer`] trait, allowing formats to manage serializer lifetimes.
-pub trait OwnedSerializer: for<'a> private::OwnedSerializerLifetime<'a> {
-    /// The serializer type returned by [`as_serializer`](Self::as_serializer).
-    type Serializer<'a>: Serializer
-    where
-        Self: 'a;
-
-    /// Returns a reference to the underlying serializer.
-    fn as_serializer(&mut self) -> Self::Serializer<'_>;
+/// This trait bridges owned serializer types with serde's reference-based [`Serializer`] trait.
+/// The blanket implementation handles the common case where `&mut T: Serializer`.
+pub trait OwnedSerializer: Sized {
+    /// Invokes a callback with an erased serializer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the callback fails.
+    fn with_erased(
+        self,
+        f: &mut dyn FnMut(&mut dyn ErasedSerializer) -> erased_serde::Result<()>,
+    ) -> erased_serde::Result<()>;
 }
 
-impl<T> OwnedSerializer for T
+impl<S> OwnedSerializer for S
 where
-    for<'a> T: private::OwnedSerializerLifetime<'a>,
+    for<'a> &'a mut S: Serializer,
 {
-    type Serializer<'a>
-        = <Self as private::OwnedSerializerLifetime<'a>>::SerializerLt
-    where
-        Self: 'a;
-
-    fn as_serializer(&mut self) -> Self::Serializer<'_> {
-        <Self as private::OwnedSerializerLifetime<'_>>::get_serializer(self)
+    fn with_erased(
+        mut self,
+        f: &mut dyn FnMut(&mut dyn ErasedSerializer) -> erased_serde::Result<()>,
+    ) -> erased_serde::Result<()> {
+        let mut erased = <dyn ErasedSerializer>::erase(&mut self);
+        f(&mut erased)
     }
 }

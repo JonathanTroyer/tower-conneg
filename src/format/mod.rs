@@ -1,5 +1,7 @@
 //! Format trait and matching logic.
 
+#[cfg(feature = "cbor")]
+mod cbor;
 mod erased;
 #[cfg(feature = "form")]
 mod form;
@@ -7,11 +9,17 @@ mod form;
 mod html;
 #[cfg(feature = "json")]
 mod json;
+#[cfg(feature = "msgpack")]
+mod msgpack;
 mod owned_deserializer;
 mod owned_serializer;
 #[cfg(feature = "plain")]
 mod plain_text;
+#[cfg(feature = "xml")]
+mod xml;
 
+#[cfg(feature = "cbor")]
+pub use cbor::CborFormat;
 pub use erased::ErasedFormat;
 #[cfg(feature = "form")]
 pub use form::FormFormat;
@@ -19,10 +27,14 @@ pub use form::FormFormat;
 pub use html::HtmlFormat;
 #[cfg(feature = "json")]
 pub use json::JsonFormat;
+#[cfg(feature = "msgpack")]
+pub use msgpack::MsgPackFormat;
 pub use owned_deserializer::{Borrowable, Consumable, OwnedDeserializer};
 pub use owned_serializer::OwnedSerializer;
 #[cfg(feature = "plain")]
 pub use plain_text::PlainTextFormat;
+#[cfg(feature = "xml")]
+pub use xml::XmlFormat;
 
 use http::HeaderValue;
 use mediatype::{MediaType, names};

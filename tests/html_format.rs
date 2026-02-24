@@ -4,9 +4,10 @@
 
 use std::sync::Arc;
 
+use erased_serde::Serialize as _;
 use http::HeaderValue;
 use mediatype::MediaType;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tower_conneg::{
     ErasedFormat, Format, HtmlFormat, MatchSpecificity, OwnedDeserializer, OwnedSerializer,
     match_specificity,
@@ -71,10 +72,11 @@ fn html_format_serialize_string() {
     let data = "<html><body>Hello</body></html>".to_string();
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     assert_eq!(bytes, b"<html><body>Hello</body></html>");
 }
@@ -96,10 +98,11 @@ fn html_format_roundtrip() {
     let data = "<html><body>&amp; test</body></html>".to_string();
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     let deserializer = format.deserializer(&bytes).unwrap();
     let result = String::deserialize(deserializer.into_deserializer()).unwrap();

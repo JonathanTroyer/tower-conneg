@@ -1,4 +1,4 @@
-#![cfg(feature = "hyper-client")]
+#![cfg(all(feature = "hyper-client", feature = "json"))]
 
 mod common;
 

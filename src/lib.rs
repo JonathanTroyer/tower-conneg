@@ -26,19 +26,25 @@ pub use client::{
 pub use config::{ClientConfig, ServerConfig};
 pub use content_type::{parse_content_type, parse_content_type_erased};
 pub use error::NegotiationError;
-pub use ext::NegotiateRequestBuilderExt;
 #[cfg(feature = "hyper-client")]
 pub use ext::HyperClientExt;
+pub use ext::NegotiateRequestBuilderExt;
 pub use ext::NegotiateResponseExt;
 pub use extractor::{Negotiate, extract_negotiated_format};
+#[cfg(feature = "cbor")]
+pub use format::CborFormat;
 #[cfg(feature = "form")]
 pub use format::FormFormat;
 #[cfg(feature = "plain")]
 pub use format::HtmlFormat;
 #[cfg(feature = "json")]
 pub use format::JsonFormat;
+#[cfg(feature = "msgpack")]
+pub use format::MsgPackFormat;
 #[cfg(feature = "plain")]
 pub use format::PlainTextFormat;
+#[cfg(feature = "xml")]
+pub use format::XmlFormat;
 pub use format::{
     Borrowable, Consumable, ErasedFormat, Format, MatchSpecificity, OwnedDeserializer,
     OwnedSerializer, match_specificity,

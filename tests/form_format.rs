@@ -4,11 +4,12 @@
 
 use std::sync::Arc;
 
+use erased_serde::Serialize as _;
 use http::HeaderValue;
 use mediatype::MediaType;
 use serde::{Deserialize, Serialize};
 use tower_conneg::{
-    ErasedFormat, Format, FormFormat, MatchSpecificity, OwnedDeserializer, OwnedSerializer,
+    ErasedFormat, FormFormat, Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer,
     match_specificity,
 };
 
@@ -99,10 +100,11 @@ fn form_format_serialize_struct() {
     };
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     assert_eq!(String::from_utf8(bytes).unwrap(), "field=hello&number=42");
 }
@@ -133,10 +135,11 @@ fn form_format_roundtrip_struct() {
     };
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     let deserializer = format.deserializer(&bytes).unwrap();
     let result = TestStruct::deserialize(deserializer.into_deserializer()).unwrap();
@@ -153,10 +156,11 @@ fn form_format_url_encoding() {
     };
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     let output = String::from_utf8(bytes).unwrap();
     assert!(output.contains("hello+world") || output.contains("hello%20world"));
@@ -189,10 +193,11 @@ fn form_format_login_form() {
     };
 
     let mut bytes = Vec::new();
-    {
-        let mut serializer = format.serializer(&mut bytes).unwrap();
-        data.serialize(serializer.as_serializer()).unwrap();
-    }
+    format
+        .serializer(&mut bytes)
+        .unwrap()
+        .with_erased(&mut |ser| data.erased_serialize(ser))
+        .unwrap();
 
     let deserializer = format.deserializer(&bytes).unwrap();
     let result = LoginForm::deserialize(deserializer.into_deserializer()).unwrap();
@@ -225,28 +230,6 @@ fn form_format_erased_roundtrip() {
         .unwrap();
 
     assert_eq!(result, Some(data));
-}
-
-#[test]
-fn form_format_serialize_integer_fails() {
-    let format = FormFormat;
-
-    let mut bytes = Vec::new();
-    let mut serializer = format.serializer(&mut bytes).unwrap();
-    let result = 42i32.serialize(serializer.as_serializer());
-
-    assert!(result.is_err());
-}
-
-#[test]
-fn form_format_serialize_string_fails() {
-    let format = FormFormat;
-
-    let mut bytes = Vec::new();
-    let mut serializer = format.serializer(&mut bytes).unwrap();
-    let result = "hello".serialize(serializer.as_serializer());
-
-    assert!(result.is_err());
 }
 
 #[test]

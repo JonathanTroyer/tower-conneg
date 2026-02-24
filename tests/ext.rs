@@ -1,5 +1,7 @@
 //! Tests for the extension traits.
 
+#![cfg(all(feature = "json", feature = "xml"))]
+
 use std::sync::Arc;
 
 use bytes::Bytes;

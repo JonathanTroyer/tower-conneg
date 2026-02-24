@@ -1,3 +1,5 @@
+#![cfg(all(feature = "json", feature = "xml"))]
+
 mod common;
 
 use std::sync::Arc;

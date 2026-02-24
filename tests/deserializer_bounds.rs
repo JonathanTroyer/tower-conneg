@@ -5,7 +5,8 @@ use serde::de::Deserializer;
 fn needs_ref_deserializer<'de, D>()
 where
     for<'a> &'a mut D: Deserializer<'de>,
-{}
+{
+}
 
 #[test]
 fn test_serde_json_deserializer_bounds() {

@@ -6,7 +6,7 @@ use mediatype::MediaType;
 use sealed::sealed;
 use std::fmt::{self, Debug, Formatter};
 
-use super::{Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer};
+use super::{Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer as _};
 
 /// Object-safe version of the [`Format`] trait.
 ///
@@ -75,9 +75,8 @@ where
         bytes: &mut Vec<u8>,
         body: &mut dyn FnMut(&mut dyn Serializer) -> erased_serde::Result<()>,
     ) -> erased_serde::Result<()> {
-        let mut serializer = <F as Format>::serializer(self, bytes)?;
-        let mut erased = <dyn Serializer>::erase(serializer.as_serializer());
-        body(&mut erased)
+        let serializer = <F as Format>::serializer(self, bytes)?;
+        serializer.with_erased(body)
     }
 
     fn deserialize(

@@ -1,3 +1,5 @@
+#![cfg(all(feature = "json", feature = "xml"))]
+
 mod common;
 
 use std::convert::Infallible;
@@ -184,7 +186,13 @@ async fn retries_with_format_from_accept_post() -> TestResult {
     let response = helper
         .call(service, move |format| {
             if let Ok(mut guard) = formats_used_clone.lock() {
-                guard.push(format.content_type_header().to_str().unwrap_or("").to_string());
+                guard.push(
+                    format
+                        .content_type_header()
+                        .to_str()
+                        .unwrap_or("")
+                        .to_string(),
+                );
             }
             Request::builder()
                 .uri("/")
@@ -342,7 +350,13 @@ async fn uses_fallback_when_no_accept_header() -> TestResult {
     let response = helper
         .call(service, move |format| {
             if let Ok(mut guard) = formats_used_clone.lock() {
-                guard.push(format.content_type_header().to_str().unwrap_or("").to_string());
+                guard.push(
+                    format
+                        .content_type_header()
+                        .to_str()
+                        .unwrap_or("")
+                        .to_string(),
+                );
             }
             Request::builder()
                 .uri("/")

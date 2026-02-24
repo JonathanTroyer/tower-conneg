@@ -1,11 +1,11 @@
-//! JSON format implementation.
+//! JSON format.
 
 use http::HeaderValue;
 use mediatype::MediaType;
 
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// JSON serialization format using `serde_json`.
+/// JSON format (`application/json`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct JsonFormat;
 

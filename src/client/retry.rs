@@ -1,20 +1,15 @@
-//! Retry helper for 415 Unsupported Media Type responses.
+//! 415 retry helper.
 
 use std::sync::Arc;
 
 use http::{Request, Response, StatusCode};
 use tower::Service;
 
-use crate::accept::parse_accept_erased;
-use crate::config::ClientConfig;
+use super::{parse_415_accept_header, select_initial_format};
+use crate::core::ClientConfig;
 use crate::format::ErasedFormat;
-use crate::{ACCEPT_PATCH, ACCEPT_POST};
 
-/// Helper for retrying requests with different formats on 415 responses.
-///
-/// Unlike [`ClientNegotiateService`](crate::ClientNegotiateService) which only caches
-/// the format for future requests, this helper actively retries the current request
-/// with alternative formats when a 415 is received.
+/// Retries requests with alternative formats on 415 responses.
 #[derive(Debug, Clone)]
 pub struct Retry415Helper {
     config: Arc<ClientConfig>,
@@ -22,12 +17,7 @@ pub struct Retry415Helper {
 }
 
 impl Retry415Helper {
-    /// Creates a new retry helper.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Client configuration with supported formats
-    /// * `max_attempts` - Maximum number of attempts (including initial request)
+    /// Creates a new helper with the given config and max attempts.
     pub fn new(config: ClientConfig, max_attempts: usize) -> Self {
         Self {
             config: Arc::new(config),
@@ -37,16 +27,8 @@ impl Retry415Helper {
 
     /// Executes a request, retrying with different formats on 415.
     ///
-    /// The `request_fn` closure is called with the format to use and should
-    /// return a new request. This allows serializing the body with each format.
-    ///
-    /// On success (any non-415 status), returns the response immediately.
-    /// On 415, parses `Accept-Post` or `Accept-Patch` headers to find an
-    /// alternative format and retries.
-    ///
     /// # Errors
-    ///
-    /// Returns [`RetryError::Service`] if the underlying service returns an error.
+    /// Returns `RetryError` if the service fails.
     pub async fn call<S, ReqBody, ResBody, F>(
         &self,
         mut service: S,
@@ -56,12 +38,7 @@ impl Retry415Helper {
         S: Service<Request<ReqBody>, Response = Response<ResBody>>,
         F: FnMut(Arc<dyn ErasedFormat>) -> Request<ReqBody>,
     {
-        let mut format = self
-            .config
-            .formats
-            .first()
-            .cloned()
-            .unwrap_or_else(|| self.config.fallback_format.clone());
+        let mut format = select_initial_format(&self.config);
 
         for attempt in 0..self.max_attempts {
             let request = request_fn(Arc::clone(&format));
@@ -81,28 +58,17 @@ impl Retry415Helper {
                 return Ok(response);
             }
 
-            // Parse Accept-Post/Accept-Patch to find alternative format
-            let accept_header = response
-                .headers()
-                .get(&ACCEPT_POST)
-                .or_else(|| response.headers().get(&ACCEPT_PATCH));
-
-            format = accept_header
-                .and_then(|hv| hv.to_str().ok())
-                .and_then(|header_str| {
-                    parse_accept_erased(header_str, &self.config.formats).map(|m| m.format)
-                })
-                .unwrap_or_else(|| self.config.fallback_format.clone());
+            format = parse_415_accept_header(&response, &self.config);
         }
 
         unreachable!("loop should return before exhausting")
     }
 }
 
-/// Error from retry helper.
+/// Error from [`Retry415Helper`].
 #[derive(Debug)]
 pub enum RetryError<E> {
-    /// The underlying service returned an error.
+    /// Service error.
     Service(E),
 }
 

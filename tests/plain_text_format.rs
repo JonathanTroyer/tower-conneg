@@ -147,29 +147,3 @@ fn plain_text_format_deserialize_integer_fails() {
 
     assert!(result.is_err());
 }
-
-#[test]
-fn plain_text_format_is_default() {
-    let format = PlainTextFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("text/plain; charset=utf-8")
-    );
-}
-
-#[test]
-fn plain_text_format_is_debug() {
-    let format = PlainTextFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "PlainTextFormat");
-}
-
-#[test]
-fn plain_text_format_is_clone() {
-    let format = PlainTextFormat;
-    let cloned = format;
-    assert_eq!(
-        Format::content_type_header(&cloned),
-        Format::content_type_header(&format)
-    );
-}

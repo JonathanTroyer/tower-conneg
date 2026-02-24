@@ -13,21 +13,13 @@ use http_body_util::Full;
 use tower::{Service, ServiceExt};
 use tower_conneg::{ClientConfig, ErasedFormat, Retry415Helper, RetryError};
 
-use common::{JsonFormat, XmlFormat};
+use common::{JsonFormat, TestError, TestResult, XmlFormat};
 
 const ACCEPT_POST: http::HeaderName = http::HeaderName::from_static("accept-post");
 const ACCEPT_PATCH: http::HeaderName = http::HeaderName::from_static("accept-patch");
 
 type MockRequest = Request<Full<Bytes>>;
 type MockResponse = Response<Full<Bytes>>;
-
-fn json_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(JsonFormat)
-}
-
-fn xml_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(XmlFormat)
-}
 
 fn mock_ok_service()
 -> impl Service<MockRequest, Response = MockResponse, Error = Infallible, Future: Send> + Clone {
@@ -109,38 +101,13 @@ fn mock_415_then_ok_with_accept_patch(
     (svc, call_count)
 }
 
-#[derive(Debug)]
-struct TestError(String);
-
-impl std::fmt::Display for TestError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for TestError {}
-
-impl From<Infallible> for TestError {
-    fn from(e: Infallible) -> Self {
-        match e {}
-    }
-}
-
-impl From<RetryError<Infallible>> for TestError {
-    fn from(e: RetryError<Infallible>) -> Self {
-        TestError(e.to_string())
-    }
-}
-
-type TestResult = Result<(), TestError>;
-
 // =============================================================================
 // Success on First Try
 // =============================================================================
 
 #[tokio::test]
 async fn success_on_first_try_returns_immediately() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -169,8 +136,8 @@ async fn success_on_first_try_returns_immediately() -> TestResult {
 
 #[tokio::test]
 async fn retries_with_format_from_accept_post() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -214,8 +181,8 @@ async fn retries_with_format_from_accept_post() -> TestResult {
 
 #[tokio::test]
 async fn retries_with_format_from_accept_patch() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -246,8 +213,8 @@ async fn retries_with_format_from_accept_patch() -> TestResult {
 
 #[tokio::test]
 async fn respects_max_attempts_limit() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -282,7 +249,7 @@ async fn respects_max_attempts_limit() -> TestResult {
 
 #[tokio::test]
 async fn max_attempts_one_returns_415_immediately() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -313,8 +280,8 @@ async fn max_attempts_one_returns_415_immediately() -> TestResult {
 
 #[tokio::test]
 async fn uses_fallback_when_no_accept_header() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])

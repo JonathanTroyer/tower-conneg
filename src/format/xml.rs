@@ -1,4 +1,4 @@
-//! XML format implementation.
+//! XML format.
 
 use erased_serde::Serializer as ErasedSerializer;
 use http::HeaderValue;
@@ -6,7 +6,7 @@ use mediatype::MediaType;
 
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// XML serialization format using `quick-xml`.
+/// XML format (`application/xml`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct XmlFormat;
 
@@ -39,7 +39,6 @@ impl Format for XmlFormat {
     }
 }
 
-/// Owned serializer for XML that creates the quick-xml Serializer on demand.
 struct XmlOwnedSerializer<'a>(&'a mut Vec<u8>);
 
 impl OwnedSerializer for XmlOwnedSerializer<'_> {
@@ -54,7 +53,6 @@ impl OwnedSerializer for XmlOwnedSerializer<'_> {
     }
 }
 
-/// Adapter from `&mut Vec<u8>` to `fmt::Write` for quick-xml.
 struct FmtWrite<'a>(&'a mut Vec<u8>);
 
 impl std::fmt::Write for FmtWrite<'_> {

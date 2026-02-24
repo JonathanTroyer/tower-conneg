@@ -6,18 +6,17 @@ use mediatype::{MediaType, MediaTypeList, ReadParams, names};
 
 use crate::format::{ErasedFormat, Format, MatchSpecificity, match_specificity};
 
-/// Result of Accept header parsing with quality and specificity.
+/// Result of Accept header parsing.
 #[derive(Debug, Clone, Copy)]
 pub struct AcceptMatch<F> {
-    /// The matched format.
+    /// Matched format.
     pub format: F,
-    /// Quality value from the Accept header (0.0-1.0).
+    /// Quality value (0.0-1.0).
     pub quality: f32,
-    /// Match specificity.
+    /// Match specificity level.
     pub specificity: MatchSpecificity,
 }
 
-/// Trait for format matching, abstracting over concrete Format types and Arc<dyn ErasedFormat>.
 pub(crate) trait FormatMatcher: Clone {
     fn try_match(&self, media_type: &MediaType<'_>) -> Option<MatchSpecificity>;
 }
@@ -34,9 +33,6 @@ impl FormatMatcher for Arc<dyn ErasedFormat> {
     }
 }
 
-/// Parse and validate a quality value per RFC 7231.
-///
-/// Valid quality values are 0.0 to 1.0. Values outside this range are rejected.
 fn parse_quality_value(s: &str) -> Option<f32> {
     let value: f32 = s.parse().ok()?;
     (0.0..=1.0).contains(&value).then_some(value)
@@ -75,7 +71,7 @@ fn parse_accept_from_slice<F: FormatMatcher>(
     best
 }
 
-/// Parse an Accept header and find the best matching format.
+/// Parses an Accept header and returns the best matching format.
 pub fn parse_accept<'a, F: Format + 'a>(
     header: &str,
     formats: &[&'a F],
@@ -83,9 +79,6 @@ pub fn parse_accept<'a, F: Format + 'a>(
     parse_accept_from_slice(header, formats)
 }
 
-/// Parse an Accept header and find the best matching format from erased formats.
-///
-/// This version works with `Arc<dyn ErasedFormat>` for dynamic dispatch.
 pub(crate) fn parse_accept_erased(
     header: &str,
     formats: &[Arc<dyn ErasedFormat>],

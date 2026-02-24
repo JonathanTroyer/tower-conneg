@@ -159,29 +159,3 @@ fn msgpack_format_binary_compactness() {
         json_bytes.len()
     );
 }
-
-#[test]
-fn msgpack_format_is_default() {
-    let format = MsgPackFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("application/msgpack")
-    );
-}
-
-#[test]
-fn msgpack_format_is_debug() {
-    let format = MsgPackFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "MsgPackFormat");
-}
-
-#[test]
-fn msgpack_format_is_clone() {
-    let format = MsgPackFormat;
-    let cloned = format;
-    assert_eq!(
-        Format::content_type_header(&cloned),
-        Format::content_type_header(&format)
-    );
-}

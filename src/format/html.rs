@@ -1,4 +1,4 @@
-//! HTML format implementation.
+//! HTML format.
 
 use http::HeaderValue;
 use mediatype::MediaType;
@@ -6,10 +6,7 @@ use mediatype::MediaType;
 use super::plain_text::{PlainTextDeserializer, PlainTextSerializer};
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// HTML format (`text/html; charset=utf-8`).
-///
-/// This format only supports `String` values - serialization of other types will fail.
-/// It reuses the same serializer/deserializer as [`super::PlainTextFormat`].
+/// HTML format (`text/html`). Only supports `String` values.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct HtmlFormat;
 

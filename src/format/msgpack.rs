@@ -1,19 +1,19 @@
-//! `MessagePack` format implementation.
+//! `MessagePack` format.
 
 use http::HeaderValue;
-use mediatype::{MediaType, Name, names::APPLICATION};
+use mediatype::MediaType;
 
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// `MessagePack` serialization format using `rmp-serde`.
+/// `MessagePack` format (`application/msgpack`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MsgPackFormat;
 
 impl Format for MsgPackFormat {
     fn media_types(&self) -> &'static [MediaType<'static>] {
         static TYPES: &[MediaType<'_>] = &[
-            MediaType::new(APPLICATION, Name::new_unchecked("msgpack")),
-            MediaType::new(APPLICATION, Name::new_unchecked("x-msgpack")),
+            mediatype::media_type!(APPLICATION / MSGPACK),
+            mediatype::media_type!(APPLICATION / x_::MSGPACK),
         ];
         TYPES
     }

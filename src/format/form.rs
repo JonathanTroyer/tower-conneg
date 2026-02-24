@@ -1,4 +1,4 @@
-//! URL-encoded form format implementation.
+//! URL-encoded form format.
 
 use http::HeaderValue;
 use mediatype::MediaType;
@@ -11,16 +11,14 @@ use super::{Consumable, Format, OwnedDeserializer, OwnedSerializer};
 
 /// URL-encoded form format (`application/x-www-form-urlencoded`).
 ///
-/// This format supports flat structs and maps for serialization, and any
-/// type supported by `serde_urlencoded` for deserialization.
+/// Supports flat structs and maps for serialization.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FormFormat;
 
 impl Format for FormFormat {
     fn media_types(&self) -> &'static [MediaType<'static>] {
-        static TYPES: &[MediaType<'_>] = &[MediaType::new(
-            mediatype::names::APPLICATION,
-            mediatype::Name::new_unchecked("x-www-form-urlencoded"),
+        static TYPES: &[MediaType<'_>] = &[mediatype::media_type!(
+            APPLICATION / x_::WWW_FORM_URLENCODED
         )];
         TYPES
     }
@@ -45,12 +43,10 @@ impl Format for FormFormat {
     }
 }
 
-/// Shared state for form serialization.
 struct SharedFormState {
     pairs: Vec<(String, String)>,
 }
 
-/// Custom serializer wrapper that handles String-to-bytes conversion.
 pub(crate) struct FormSerializerWrapper<'out> {
     output: &'out mut Vec<u8>,
     state: Rc<RefCell<SharedFormState>>,
@@ -88,12 +84,10 @@ impl Drop for FormSerializerWrapper<'_> {
     }
 }
 
-/// Struct serializer for form-encoded data.
 pub(crate) struct FormStructSerializer {
     state: Rc<RefCell<SharedFormState>>,
 }
 
-/// Map serializer for form-encoded data.
 pub(crate) struct FormMapSerializer {
     state: Rc<RefCell<SharedFormState>>,
     key: Option<String>,
@@ -138,138 +132,10 @@ impl ser::Serializer for &mut FormSerializerWrapper<'_> {
         value.serialize(self)
     }
 
-    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("bool"))
-    }
-
-    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("i8"))
-    }
-
-    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("i16"))
-    }
-
-    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("i32"))
-    }
-
-    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("i64"))
-    }
-
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("u8"))
-    }
-
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("u16"))
-    }
-
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("u32"))
-    }
-
-    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("u64"))
-    }
-
-    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("f32"))
-    }
-
-    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("f64"))
-    }
-
-    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("char"))
-    }
-
-    fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("str"))
-    }
-
-    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("bytes"))
-    }
-
-    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("none"))
-    }
-
-    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde::Serialize,
-    {
-        Err(FormError::UnsupportedType("some"))
-    }
-
-    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("unit"))
-    }
-
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("unit struct"))
-    }
-
-    fn serialize_unit_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-    ) -> Result<Self::Ok, Self::Error> {
-        Err(FormError::UnsupportedType("unit variant"))
-    }
-
-    fn serialize_newtype_variant<T>(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde::Serialize,
-    {
-        Err(FormError::UnsupportedType("newtype variant"))
-    }
-
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(FormError::UnsupportedType("sequence"))
-    }
-
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(FormError::UnsupportedType("tuple"))
-    }
-
-    fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(FormError::UnsupportedType("tuple struct"))
-    }
-
-    fn serialize_tuple_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(FormError::UnsupportedType("tuple variant"))
-    }
-
-    fn serialize_struct_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        Err(FormError::UnsupportedType("struct variant"))
-    }
+    reject_serializer_types!(FormError => {
+        primitives: [bool, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, str, bytes, none, some, unit]
+        compound: [unit_struct, unit_variant, newtype_variant, seq, tuple, tuple_struct, tuple_variant, struct_variant]
+    });
 }
 
 impl ser::SerializeStruct for FormStructSerializer {
@@ -323,7 +189,6 @@ impl ser::SerializeMap for FormMapSerializer {
     }
 }
 
-/// Serialize a value to a string for form encoding.
 #[allow(clippy::too_many_lines)]
 fn value_to_string<T: ?Sized + serde::Serialize>(value: &T) -> Result<String, FormError> {
     struct StringSerializer;
@@ -499,27 +364,14 @@ fn value_to_string<T: ?Sized + serde::Serialize>(value: &T) -> Result<String, Fo
     value.serialize(StringSerializer)
 }
 
-/// Error type for form serialization/deserialization.
-#[derive(Debug)]
+/// Form serialization error.
+#[derive(Debug, thiserror::Error)]
 pub enum FormError {
-    /// The type is not supported for form serialization.
+    #[error("form encoding does not support {0}")]
     UnsupportedType(&'static str),
-    /// A custom error message from serde.
+    #[error("{0}")]
     Custom(String),
 }
-
-impl std::fmt::Display for FormError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnsupportedType(ty) => {
-                write!(f, "form encoding does not support {ty}")
-            }
-            Self::Custom(msg) => write!(f, "{msg}"),
-        }
-    }
-}
-
-impl std::error::Error for FormError {}
 
 impl ser::Error for FormError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {

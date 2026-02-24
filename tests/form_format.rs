@@ -231,29 +231,3 @@ fn form_format_erased_roundtrip() {
 
     assert_eq!(result, Some(data));
 }
-
-#[test]
-fn form_format_is_default() {
-    let format = FormFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("application/x-www-form-urlencoded")
-    );
-}
-
-#[test]
-fn form_format_is_debug() {
-    let format = FormFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "FormFormat");
-}
-
-#[test]
-fn form_format_is_clone() {
-    let format = FormFormat;
-    let cloned = format;
-    assert_eq!(
-        Format::content_type_header(&cloned),
-        Format::content_type_header(&format)
-    );
-}

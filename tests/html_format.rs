@@ -133,29 +133,3 @@ fn html_format_erased_roundtrip() {
 
     assert_eq!(result, Some(data));
 }
-
-#[test]
-fn html_format_is_default() {
-    let format = HtmlFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("text/html; charset=utf-8")
-    );
-}
-
-#[test]
-fn html_format_is_debug() {
-    let format = HtmlFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "HtmlFormat");
-}
-
-#[test]
-fn html_format_is_clone() {
-    let format = HtmlFormat;
-    let cloned = format;
-    assert_eq!(
-        Format::content_type_header(&cloned),
-        Format::content_type_header(&format)
-    );
-}

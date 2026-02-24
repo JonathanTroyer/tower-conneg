@@ -1,4 +1,4 @@
-//! Plain text format implementation.
+//! Plain text format.
 
 use http::HeaderValue;
 use mediatype::MediaType;
@@ -10,9 +10,7 @@ use serde::{
 
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// Plain text format (`text/plain; charset=utf-8`).
-///
-/// This format only supports `String` values - serialization of other types will fail.
+/// Plain text format (`text/plain`). Only supports `String` values.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct PlainTextFormat;
 
@@ -41,7 +39,6 @@ impl Format for PlainTextFormat {
     }
 }
 
-/// Serializer that writes string content directly as bytes.
 pub(crate) struct PlainTextSerializer<'out> {
     pub(crate) output: &'out mut Vec<u8>,
 }
@@ -73,149 +70,12 @@ impl ser::Serializer for &mut PlainTextSerializer<'_> {
         value.serialize(self)
     }
 
-    fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("bool"))
-    }
-
-    fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("i8"))
-    }
-
-    fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("i16"))
-    }
-
-    fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("i32"))
-    }
-
-    fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("i64"))
-    }
-
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("u8"))
-    }
-
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("u16"))
-    }
-
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("u32"))
-    }
-
-    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("u64"))
-    }
-
-    fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("f32"))
-    }
-
-    fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("f64"))
-    }
-
-    fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("char"))
-    }
-
-    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("bytes"))
-    }
-
-    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("none"))
-    }
-
-    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde::Serialize,
-    {
-        Err(PlainTextError::UnsupportedType("some"))
-    }
-
-    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("unit"))
-    }
-
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("unit struct"))
-    }
-
-    fn serialize_unit_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-    ) -> Result<Self::Ok, Self::Error> {
-        Err(PlainTextError::UnsupportedType("unit variant"))
-    }
-
-    fn serialize_newtype_variant<T>(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok, Self::Error>
-    where
-        T: ?Sized + serde::Serialize,
-    {
-        Err(PlainTextError::UnsupportedType("newtype variant"))
-    }
-
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(PlainTextError::UnsupportedType("sequence"))
-    }
-
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(PlainTextError::UnsupportedType("tuple"))
-    }
-
-    fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(PlainTextError::UnsupportedType("tuple struct"))
-    }
-
-    fn serialize_tuple_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(PlainTextError::UnsupportedType("tuple variant"))
-    }
-
-    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Err(PlainTextError::UnsupportedType("map"))
-    }
-
-    fn serialize_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStruct, Self::Error> {
-        Err(PlainTextError::UnsupportedType("struct"))
-    }
-
-    fn serialize_struct_variant(
-        self,
-        _name: &'static str,
-        _variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        Err(PlainTextError::UnsupportedType("struct variant"))
-    }
+    reject_serializer_types!(PlainTextError => {
+        primitives: [bool, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, bytes, none, some, unit]
+        compound: [unit_struct, unit_variant, newtype_variant, seq, tuple, tuple_struct, tuple_variant, map, struct_, struct_variant]
+    });
 }
 
-/// Deserializer that reads bytes as a UTF-8 string.
 pub(crate) struct PlainTextDeserializer<'de> {
     pub(crate) input: &'de [u8],
 }
@@ -256,225 +116,22 @@ impl<'de> Deserializer<'de> for &mut PlainTextDeserializer<'de> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_bool<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("bool"))
-    }
-
-    fn deserialize_i8<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("i8"))
-    }
-
-    fn deserialize_i16<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("i16"))
-    }
-
-    fn deserialize_i32<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("i32"))
-    }
-
-    fn deserialize_i64<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("i64"))
-    }
-
-    fn deserialize_u8<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("u8"))
-    }
-
-    fn deserialize_u16<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("u16"))
-    }
-
-    fn deserialize_u32<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("u32"))
-    }
-
-    fn deserialize_u64<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("u64"))
-    }
-
-    fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("f32"))
-    }
-
-    fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("f64"))
-    }
-
-    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("char"))
-    }
-
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("bytes"))
-    }
-
-    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("byte_buf"))
-    }
-
-    fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("option"))
-    }
-
-    fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("unit"))
-    }
-
-    fn deserialize_unit_struct<V>(
-        self,
-        _name: &'static str,
-        _visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("unit struct"))
-    }
-
-    fn deserialize_seq<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("sequence"))
-    }
-
-    fn deserialize_tuple<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("tuple"))
-    }
-
-    fn deserialize_tuple_struct<V>(
-        self,
-        _name: &'static str,
-        _len: usize,
-        _visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("tuple struct"))
-    }
-
-    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("map"))
-    }
-
-    fn deserialize_struct<V>(
-        self,
-        _name: &'static str,
-        _fields: &'static [&'static str],
-        _visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("struct"))
-    }
-
-    fn deserialize_enum<V>(
-        self,
-        _name: &'static str,
-        _variants: &'static [&'static str],
-        _visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("enum"))
-    }
-
-    fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("identifier"))
-    }
-
-    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        Err(PlainTextError::UnsupportedType("ignored_any"))
-    }
+    reject_deserializer_types!(PlainTextError => {
+        primitives: [bool, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, bytes, byte_buf, option, unit, identifier, ignored_any]
+        compound: [unit_struct, seq, tuple, tuple_struct, map, struct_, enum_]
+    });
 }
 
-/// Error type for plain text serialization/deserialization.
-#[derive(Debug)]
+/// Plain text serialization error.
+#[derive(Debug, thiserror::Error)]
 pub enum PlainTextError {
-    /// The type is not supported for plain text serialization.
+    #[error("plain text format only supports strings, not {0}")]
     UnsupportedType(&'static str),
-    /// The input bytes are not valid UTF-8.
+    #[error("input is not valid UTF-8")]
     InvalidUtf8,
-    /// A custom error message from serde.
+    #[error("{0}")]
     Custom(String),
 }
-
-impl std::fmt::Display for PlainTextError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnsupportedType(ty) => {
-                write!(f, "plain text format only supports strings, not {ty}")
-            }
-            Self::InvalidUtf8 => write!(f, "input is not valid UTF-8"),
-            Self::Custom(msg) => write!(f, "{msg}"),
-        }
-    }
-}
-
-impl std::error::Error for PlainTextError {}
 
 impl ser::Error for PlainTextError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {

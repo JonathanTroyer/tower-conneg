@@ -41,14 +41,6 @@ fn capturing_service(
     })
 }
 
-fn json_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(JsonFormat)
-}
-
-fn xml_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(XmlFormat)
-}
-
 fn build_config(
     formats: Vec<Arc<dyn ErasedFormat>>,
     fallback: Arc<dyn ErasedFormat>,
@@ -74,8 +66,8 @@ fn build_strict_config(
 
 #[tokio::test]
 async fn accept_missing_uses_fallback() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -90,8 +82,8 @@ async fn accept_missing_uses_fallback() {
 
 #[tokio::test]
 async fn accept_missing_uses_fallback_with_xml_default() {
-    let xml = xml_format();
-    let config = build_config(vec![json_format(), xml.clone()], xml);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
+    let config = build_config(vec![Arc::new(JsonFormat), xml.clone()], xml);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -114,8 +106,8 @@ async fn accept_missing_uses_fallback_with_xml_default() {
 
 #[tokio::test]
 async fn accept_exact_match_json() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -139,8 +131,8 @@ async fn accept_exact_match_json() {
 
 #[tokio::test]
 async fn accept_exact_match_xml() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -164,8 +156,8 @@ async fn accept_exact_match_xml() {
 
 #[tokio::test]
 async fn accept_type_wildcard_application() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -192,8 +184,8 @@ async fn accept_type_wildcard_application() {
 
 #[tokio::test]
 async fn accept_full_wildcard() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -218,8 +210,8 @@ async fn accept_full_wildcard() {
 
 #[tokio::test]
 async fn accept_quality_values_prefers_higher_quality() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -247,8 +239,8 @@ async fn accept_quality_values_prefers_higher_quality() {
 
 #[tokio::test]
 async fn accept_quality_values_json_preferred() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -275,8 +267,8 @@ async fn accept_quality_values_json_preferred() {
 
 #[tokio::test]
 async fn content_type_missing_results_in_response_only() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -301,8 +293,8 @@ async fn content_type_missing_results_in_response_only() {
 
 #[tokio::test]
 async fn content_type_exact_match_json() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -328,8 +320,8 @@ async fn content_type_exact_match_json() {
 
 #[tokio::test]
 async fn content_type_exact_match_xml() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -355,8 +347,8 @@ async fn content_type_exact_match_xml() {
 
 #[tokio::test]
 async fn content_type_unsupported_returns_415() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -376,8 +368,8 @@ async fn content_type_unsupported_returns_415() {
 
 #[tokio::test]
 async fn strict_mode_no_accept_match_returns_406() {
-    let json = json_format();
-    let config = build_strict_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_strict_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -393,8 +385,8 @@ async fn strict_mode_no_accept_match_returns_406() {
 
 #[tokio::test]
 async fn non_strict_mode_no_accept_match_uses_fallback() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -418,8 +410,8 @@ async fn non_strict_mode_no_accept_match_uses_fallback() {
 
 #[tokio::test]
 async fn unsupported_content_type_post_includes_accept_post_header() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -448,8 +440,8 @@ async fn unsupported_content_type_post_includes_accept_post_header() {
 
 #[tokio::test]
 async fn unsupported_content_type_patch_includes_accept_patch_header() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -478,8 +470,8 @@ async fn unsupported_content_type_patch_includes_accept_patch_header() {
 
 #[tokio::test]
 async fn unsupported_content_type_get_no_accept_header() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -505,8 +497,8 @@ async fn unsupported_content_type_get_no_accept_header() {
 
 #[tokio::test]
 async fn unsupported_content_type_put_no_accept_header() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(mock_service());
 
@@ -534,8 +526,8 @@ async fn unsupported_content_type_put_no_accept_header() {
 
 #[tokio::test]
 async fn negotiated_format_stored_in_extensions() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -560,8 +552,8 @@ async fn negotiated_format_stored_in_extensions() {
 
 #[tokio::test]
 async fn negotiated_format_response_and_request_formats_differ() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -595,8 +587,8 @@ async fn negotiated_format_response_and_request_formats_differ() {
 
 #[tokio::test]
 async fn negotiated_format_response_and_request_formats_same() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -631,7 +623,7 @@ async fn negotiated_format_response_and_request_formats_same() {
 
 #[tokio::test]
 async fn single_format_config() {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
     let config = build_config(vec![json.clone()], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
@@ -656,7 +648,7 @@ async fn single_format_config() {
 
 #[tokio::test]
 async fn empty_formats_uses_fallback() {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
     let config = ServerConfig::builder()
         .formats(std::iter::empty::<Arc<dyn ErasedFormat>>())
         .fallback_format(json)
@@ -683,8 +675,8 @@ async fn empty_formats_uses_fallback() {
 
 #[tokio::test]
 async fn content_type_with_charset_matches() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));
@@ -710,8 +702,8 @@ async fn content_type_with_charset_matches() {
 
 #[tokio::test]
 async fn multiple_accept_values_first_match_wins() {
-    let json = json_format();
-    let config = build_config(vec![json.clone(), xml_format()], json);
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let config = build_config(vec![json.clone(), Arc::new(XmlFormat)], json);
     let capture = Arc::new(std::sync::Mutex::new(None));
     let layer = NegotiateLayer::new(config);
     let mut service = layer.layer(capturing_service(Arc::clone(&capture)));

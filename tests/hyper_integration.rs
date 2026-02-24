@@ -16,10 +16,6 @@ use common::JsonFormat;
 type MockRequest = Request<Full<Bytes>>;
 type MockResponse = Response<Full<Bytes>>;
 
-fn json_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(JsonFormat)
-}
-
 fn mock_service_capturing_headers() -> (
     impl Service<MockRequest, Response = MockResponse, Error = Infallible, Future: Send> + Clone,
     Arc<std::sync::Mutex<Vec<(String, String)>>>,
@@ -80,7 +76,7 @@ type TestResult = Result<(), TestError>;
 
 #[tokio::test]
 async fn with_content_negotiation_applies_layer() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -110,7 +106,7 @@ async fn with_content_negotiation_applies_layer() -> TestResult {
 
 #[tokio::test]
 async fn with_content_negotiation_sets_accept_header() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -137,7 +133,7 @@ async fn with_content_negotiation_sets_accept_header() -> TestResult {
 
 #[tokio::test]
 async fn extension_trait_equivalent_to_layer() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -178,7 +174,7 @@ async fn extension_trait_equivalent_to_layer() -> TestResult {
 
 #[tokio::test]
 async fn format_caching_works_through_extension() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])

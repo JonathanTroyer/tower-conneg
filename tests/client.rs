@@ -11,7 +11,7 @@ use http_body_util::Full;
 use tower::{Layer, Service, ServiceExt};
 use tower_conneg::{ClientConfig, ClientNegotiateLayer, ClientRequestExt, ErasedFormat};
 
-use common::{JsonFormat, XmlFormat};
+use common::{JsonFormat, TestError, TestResult, XmlFormat};
 
 const ACCEPT_POST: http::HeaderName = http::HeaderName::from_static("accept-post");
 const ACCEPT_PATCH: http::HeaderName = http::HeaderName::from_static("accept-patch");
@@ -89,47 +89,14 @@ fn mock_capturing_service() -> (
     (svc, captured)
 }
 
-fn json_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(JsonFormat)
-}
-
-fn xml_format() -> Arc<dyn ErasedFormat> {
-    Arc::new(XmlFormat)
-}
-
-#[derive(Debug)]
-struct TestError(String);
-
-impl std::fmt::Display for TestError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for TestError {}
-
-impl From<Infallible> for TestError {
-    fn from(e: Infallible) -> Self {
-        match e {}
-    }
-}
-
-impl<T> From<std::sync::PoisonError<T>> for TestError {
-    fn from(e: std::sync::PoisonError<T>) -> Self {
-        TestError(e.to_string())
-    }
-}
-
-type TestResult = Result<(), TestError>;
-
 // =============================================================================
 // Format Caching Tests
 // =============================================================================
 
 #[tokio::test]
 async fn first_request_uses_highest_priority_format() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml])
@@ -155,7 +122,7 @@ async fn first_request_uses_highest_priority_format() -> TestResult {
 
 #[tokio::test]
 async fn successful_response_caches_format() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -187,8 +154,8 @@ async fn successful_response_caches_format() -> TestResult {
 
 #[tokio::test]
 async fn subsequent_requests_use_cached_format() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -217,7 +184,7 @@ async fn subsequent_requests_use_cached_format() -> TestResult {
 
 #[tokio::test]
 async fn cached_format_returns_stored_format() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -249,8 +216,8 @@ async fn cached_format_returns_stored_format() -> TestResult {
 
 #[tokio::test]
 async fn parses_accept_post_header_on_415() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -278,8 +245,8 @@ async fn parses_accept_post_header_on_415() -> TestResult {
 
 #[tokio::test]
 async fn parses_accept_patch_header_on_415() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -307,8 +274,8 @@ async fn parses_accept_patch_header_on_415() -> TestResult {
 
 #[tokio::test]
 async fn selects_matching_format_from_server_accept_post_list() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -338,8 +305,8 @@ async fn selects_matching_format_from_server_accept_post_list() -> TestResult {
 
 #[tokio::test]
 async fn caches_negotiated_format_from_415() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -368,7 +335,7 @@ async fn caches_negotiated_format_from_415() -> TestResult {
 
 #[tokio::test]
 async fn response_415_returned_unchanged() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -396,8 +363,8 @@ async fn response_415_returned_unchanged() -> TestResult {
 
 #[tokio::test]
 async fn uses_fallback_format_when_no_accept_post_header() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -423,8 +390,8 @@ async fn uses_fallback_format_when_no_accept_post_header() -> TestResult {
 
 #[tokio::test]
 async fn caches_fallback_format_on_415_without_accept() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -457,8 +424,8 @@ async fn caches_fallback_format_on_415_without_accept() -> TestResult {
 
 #[tokio::test]
 async fn with_format_bypasses_cache_and_config() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -492,8 +459,8 @@ async fn with_format_bypasses_cache_and_config() -> TestResult {
 
 #[tokio::test]
 async fn override_does_not_affect_cache() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -535,8 +502,8 @@ async fn override_does_not_affect_cache() -> TestResult {
 
 #[tokio::test]
 async fn multiple_requests_can_use_different_overrides() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -585,7 +552,7 @@ async fn multiple_requests_can_use_different_overrides() -> TestResult {
 
 #[tokio::test]
 async fn empty_formats_list_uses_fallback() -> TestResult {
-    let json = json_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
 
     let config = ClientConfig::builder()
         .formats([])
@@ -611,8 +578,8 @@ async fn empty_formats_list_uses_fallback() -> TestResult {
 
 #[tokio::test]
 async fn fallback_used_when_415_has_no_accept_header() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone()])
@@ -642,8 +609,8 @@ async fn fallback_used_when_415_has_no_accept_header() -> TestResult {
 
 #[tokio::test]
 async fn sets_accept_header_on_request() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -694,8 +661,8 @@ async fn sets_accept_header_on_request() -> TestResult {
 
 #[tokio::test]
 async fn cache_is_not_overwritten_by_subsequent_responses() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])
@@ -734,8 +701,8 @@ async fn cache_is_not_overwritten_by_subsequent_responses() -> TestResult {
 
 #[tokio::test]
 async fn cache_set_by_success_not_overwritten_by_415() -> TestResult {
-    let json = json_format();
-    let xml = xml_format();
+    let json: Arc<dyn ErasedFormat> = Arc::new(JsonFormat);
+    let xml: Arc<dyn ErasedFormat> = Arc::new(XmlFormat);
 
     let config = ClientConfig::builder()
         .formats([json.clone(), xml.clone()])

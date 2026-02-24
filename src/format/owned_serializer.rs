@@ -1,22 +1,14 @@
-//! Owned serializer trait for bridging serde's reference-based serializers.
-//!
-//! Serde's [`Serializer`](serde::Serializer) trait is typically implemented on references
-//! (`&mut T`), not owned types. This module provides [`OwnedSerializer`] which abstracts
-//! over this pattern, allowing formats to return owned serializer values.
+//! Owned serializer trait.
 
 use erased_serde::Serializer as ErasedSerializer;
 use serde::ser::Serializer;
 
-/// A type that owns a serializer and can provide erased access to it.
-///
-/// This trait bridges owned serializer types with serde's reference-based [`Serializer`] trait.
-/// The blanket implementation handles the common case where `&mut T: Serializer`.
+/// Bridges owned serializer types with serde's reference-based `Serializer` trait.
 pub trait OwnedSerializer: Sized {
     /// Invokes a callback with an erased serializer.
     ///
     /// # Errors
-    ///
-    /// Returns an error if the callback fails.
+    /// Returns an error if serialization fails.
     fn with_erased(
         self,
         f: &mut dyn FnMut(&mut dyn ErasedSerializer) -> erased_serde::Result<()>,

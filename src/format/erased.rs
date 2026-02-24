@@ -1,4 +1,4 @@
-//! Object-safe format trait for dynamic dispatch.
+//! Object-safe format trait.
 
 use erased_serde::{Deserializer, Serializer};
 use http::HeaderValue;
@@ -8,29 +8,23 @@ use std::fmt::{self, Debug, Formatter};
 
 use super::{Format, MatchSpecificity, OwnedDeserializer, OwnedSerializer as _};
 
-/// Object-safe version of the [`Format`] trait.
+/// Object-safe version of [`Format`] for dynamic dispatch.
 ///
-/// This trait enables dynamic dispatch for format types, allowing them to be
-/// stored in trait objects like `Arc<dyn ErasedFormat>`. The middleware uses
-/// this to serialize responses without knowing the concrete format type.
-///
-/// You don't implement this trait directly - there's a blanket implementation
-/// for all types that implement [`Format`].
+/// Automatically implemented for all `Format` types.
 #[sealed]
 pub trait ErasedFormat: Send + Sync {
-    /// Returns the primary media type for this format.
+    /// Primary media type for this format.
     fn primary_media_type(&self) -> MediaType<'static>;
 
-    /// Returns the `Content-Type` header value for this format.
+    /// Content-Type header value.
     fn content_type_header(&self) -> HeaderValue;
 
-    /// Determines how specifically this format matches the requested media type.
+    /// Match specificity against a requested media type.
     fn match_specificity(&self, requested: &MediaType<'_>) -> Option<MatchSpecificity>;
 
-    /// Serializes data using a callback that receives a type-erased serializer.
+    /// Serializes via a callback receiving a type-erased serializer.
     ///
     /// # Errors
-    ///
     /// Returns an error if serialization fails.
     fn serialize(
         &self,
@@ -38,10 +32,9 @@ pub trait ErasedFormat: Send + Sync {
         body: &mut dyn FnMut(&mut dyn Serializer) -> erased_serde::Result<()>,
     ) -> erased_serde::Result<()>;
 
-    /// Deserializes data using a callback that receives a type-erased deserializer.
+    /// Deserializes via a callback receiving a type-erased deserializer.
     ///
     /// # Errors
-    ///
     /// Returns an error if deserialization fails.
     fn deserialize(
         &self,

@@ -1,19 +1,18 @@
-//! CBOR format implementation.
+//! CBOR format.
 
 use cbor4ii::core::utils::{IoWriter, SliceReader};
 use http::HeaderValue;
-use mediatype::{MediaType, Name, names::APPLICATION};
+use mediatype::MediaType;
 
 use super::{Borrowable, Format, OwnedDeserializer, OwnedSerializer};
 
-/// CBOR serialization format using `cbor4ii`.
+/// CBOR format (`application/cbor`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct CborFormat;
 
 impl Format for CborFormat {
     fn media_types(&self) -> &'static [MediaType<'static>] {
-        static TYPES: &[MediaType<'_>] =
-            &[MediaType::new(APPLICATION, Name::new_unchecked("cbor"))];
+        static TYPES: &[MediaType<'_>] = &[mediatype::media_type!(APPLICATION / CBOR)];
         TYPES
     }
 

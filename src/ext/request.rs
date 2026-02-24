@@ -7,25 +7,19 @@ use http::{Request, header};
 use http_body_util::Full;
 use serde::Serialize;
 
-use crate::error::NegotiationError;
+use crate::core::NegotiationError;
 use crate::format::ErasedFormat;
 
 /// Extension trait for building requests with content negotiation.
 pub trait NegotiateRequestBuilderExt {
-    /// Sets the `Accept` header with quality values for the given formats.
-    ///
-    /// Formats are listed in priority order (highest priority first), with
-    /// decreasing quality values (q=1.0, q=0.9, q=0.8, ...).
+    /// Sets the `Accept` header with quality values (highest priority first).
     #[must_use]
     fn accept_formats(self, formats: &[Arc<dyn ErasedFormat>]) -> Self;
 
-    /// Serializes the value using the given format and builds the request.
-    ///
-    /// Sets the `Content-Type` header and request body.
+    /// Serializes the value and sets `Content-Type` header.
     ///
     /// # Errors
-    ///
-    /// Returns `NegotiationError::Serialization` if serialization fails.
+    /// Returns an error if serialization fails.
     fn body_with_format<T: Serialize>(
         self,
         value: &T,
@@ -71,14 +65,10 @@ impl NegotiateRequestBuilderExt for http::request::Builder {
                 use erased_serde::Serialize;
                 value.erased_serialize(serializer)
             })
-            .map_err(|e| NegotiationError::Serialization {
-                source: e.to_string(),
-            })?;
+            .map_err(NegotiationError::serialization)?;
 
         self.header(header::CONTENT_TYPE, format.content_type_header())
             .body(Full::new(bytes.into()))
-            .map_err(|e| NegotiationError::Serialization {
-                source: e.to_string(),
-            })
+            .map_err(NegotiationError::serialization)
     }
 }

@@ -1,32 +1,29 @@
-//! Response wrapper for content-negotiated responses.
+//! Response wrapper.
 
 use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::ErasedFormat;
+use crate::format::ErasedFormat;
 
-/// Response wrapper that holds a value and its serialization format.
-///
-/// The format is captured from the incoming request's Accept header negotiation.
-/// Serialization happens in `IntoResponse` (with axum feature).
+/// Response wrapper holding a value and its serialization format.
 pub struct NegotiateResponse<T: Serialize> {
     value: T,
     format: Arc<dyn ErasedFormat>,
 }
 
 impl<T: Serialize> NegotiateResponse<T> {
-    /// Creates a new negotiated response.
+    /// Creates a new response with the given value and format.
     pub fn new(value: T, format: Arc<dyn ErasedFormat>) -> Self {
         Self { value, format }
     }
 
-    /// Returns the response format.
+    /// Returns the serialization format.
     pub fn format(&self) -> &Arc<dyn ErasedFormat> {
         &self.format
     }
 
-    /// Consumes self and returns the inner value.
+    /// Returns the inner value.
     pub fn into_inner(self) -> T {
         self.value
     }

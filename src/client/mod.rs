@@ -1,16 +1,8 @@
-//! Client-side content negotiation Tower middleware.
-//!
-//! This middleware handles content negotiation for HTTP clients:
-//! - Serializes request bodies using the negotiated format
-//! - Sets the `Content-Type` header on requests
-//! - Parses the response `Content-Type` header
-//! - Caches successful format selections for subsequent requests
-//!
-//! Format selection follows a caching strategy per DESIGN.md:
-//! 1. Use cached format if available
-//! 2. Otherwise use highest-priority format from config
-//! 3. On 2xx success: cache that format
-//! 4. On 415 failure: parse Accept-Post/Accept-Patch, cache appropriate format
+//! Client-side content negotiation middleware.
+
+mod retry;
+
+pub use retry::{Retry415Helper, RetryError};
 
 use std::future::Future;
 use std::pin::Pin;
@@ -24,24 +16,41 @@ use http_body_util::Full;
 use pin_project_lite::pin_project;
 use tower::{Layer, Service};
 
-use crate::accept::parse_accept_erased;
-use crate::config::ClientConfig;
+use crate::core::{ClientConfig, parse_accept_erased};
 use crate::format::ErasedFormat;
 use crate::{ACCEPT_PATCH, ACCEPT_POST};
 
+pub(crate) fn select_initial_format(config: &ClientConfig) -> Arc<dyn ErasedFormat> {
+    config
+        .formats
+        .first()
+        .cloned()
+        .unwrap_or_else(|| config.fallback_format.clone())
+}
+
+pub(crate) fn parse_415_accept_header<ResBody>(
+    response: &Response<ResBody>,
+    config: &ClientConfig,
+) -> Arc<dyn ErasedFormat> {
+    response
+        .headers()
+        .get(&ACCEPT_POST)
+        .or_else(|| response.headers().get(&ACCEPT_PATCH))
+        .and_then(|hv| hv.to_str().ok())
+        .and_then(|header_str| parse_accept_erased(header_str, &config.formats).map(|m| m.format))
+        .unwrap_or_else(|| config.fallback_format.clone())
+}
+
 /// Tower layer for client-side content negotiation.
 ///
-/// Wraps an inner service to add content negotiation behavior:
-/// - Serializes request bodies with the selected format
-/// - Sets appropriate `Content-Type` headers
-/// - Caches successful format selections for subsequent requests
+/// Caches successful format selections for subsequent requests.
 #[derive(Debug, Clone)]
 pub struct ClientNegotiateLayer {
     config: Arc<ClientConfig>,
 }
 
 impl ClientNegotiateLayer {
-    /// Creates a new client negotiation layer with the given configuration.
+    /// Creates a new layer with the given configuration.
     pub fn new(config: ClientConfig) -> Self {
         Self {
             config: Arc::new(config),
@@ -59,10 +68,7 @@ impl<S> Layer<S> for ClientNegotiateLayer {
 
 /// Tower service for client-side content negotiation.
 ///
-/// This service wraps an HTTP client service and handles format negotiation:
-/// - Selects the format to use (cached or highest priority)
-/// - Caches successful formats for future requests
-/// - Handles 415 responses by parsing Accept-Post/Accept-Patch headers
+/// Caches successful formats and handles 415 responses.
 #[derive(Debug, Clone)]
 pub struct ClientNegotiateService<S> {
     inner: S,
@@ -71,7 +77,7 @@ pub struct ClientNegotiateService<S> {
 }
 
 impl<S> ClientNegotiateService<S> {
-    /// Creates a new client negotiation service.
+    /// Wraps a service with content negotiation.
     pub fn new(inner: S, config: Arc<ClientConfig>) -> Self {
         Self {
             inner,
@@ -80,31 +86,22 @@ impl<S> ClientNegotiateService<S> {
         }
     }
 
-    /// Returns the currently cached format, if any.
+    /// Returns the cached format, if any.
     pub fn cached_format(&self) -> Option<Arc<dyn ErasedFormat>> {
         self.cached_format.get().cloned()
     }
 
-    /// Gets the format to use for the request.
-    ///
-    /// Per DESIGN.md request flow:
-    /// 1. If format already cached: use cached format
-    /// 2. Otherwise, use highest-priority format from config
     fn select_request_format(&self) -> Arc<dyn ErasedFormat> {
-        self.cached_format.get().cloned().unwrap_or_else(|| {
-            self.config
-                .formats
-                .first()
-                .cloned()
-                .unwrap_or_else(|| self.config.fallback_format.clone())
-        })
+        self.cached_format
+            .get()
+            .cloned()
+            .unwrap_or_else(|| select_initial_format(&self.config))
     }
 }
 
-/// Serializes a value using the given format into a request body.
+/// Serializes a value into a request body using the given format.
 ///
 /// # Errors
-///
 /// Returns an error if serialization fails.
 pub fn serialize<T: serde::Serialize>(
     value: &T,
@@ -118,17 +115,16 @@ pub fn serialize<T: serde::Serialize>(
     Ok(Full::new(bytes.into()))
 }
 
-/// Extension trait for requests to set the negotiated format.
+/// Extension trait for setting per-request format overrides.
 pub trait ClientRequestExt<B> {
-    /// Sets the content negotiation format for this request, bypassing the cache.
+    /// Sets a format override for this request, bypassing the cache.
     #[must_use]
     fn with_format(self, format: Arc<dyn ErasedFormat>) -> Self;
 
-    /// Gets the format override set on this request, if any.
+    /// Returns the format override, if set.
     fn format_override(&self) -> Option<&Arc<dyn ErasedFormat>>;
 }
 
-/// Extension type stored in request extensions to override format selection.
 #[derive(Debug, Clone)]
 pub(crate) struct FormatOverride(pub Arc<dyn ErasedFormat>);
 
@@ -213,26 +209,11 @@ where
 
                 // DESIGN.md step 3: On success (2xx), cache the format we used
                 if status.is_success() {
-                    // First writer wins - ignore if already cached
                     let _ = this.cached_format.set(Arc::clone(this.format));
                 } else if status == StatusCode::UNSUPPORTED_MEDIA_TYPE {
                     // DESIGN.md step 4: On 415, parse Accept-Post/Accept-Patch
                     // and cache the server's preferred format
-                    let accept_header = response
-                        .headers()
-                        .get(&ACCEPT_POST)
-                        .or_else(|| response.headers().get(&ACCEPT_PATCH));
-
-                    let new_format = accept_header
-                        .and_then(|hv| hv.to_str().ok())
-                        .and_then(|header_str| {
-                            // Select highest-priority client format from server's list
-                            parse_accept_erased(header_str, &this.config.formats).map(|m| m.format)
-                        })
-                        // If no header or no match, use fallback_format
-                        .unwrap_or_else(|| Arc::clone(&this.config.fallback_format));
-
-                    // First writer wins - ignore if already cached
+                    let new_format = parse_415_accept_header(&response, this.config);
                     let _ = this.cached_format.set(new_format);
                 }
 

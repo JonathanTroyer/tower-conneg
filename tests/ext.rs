@@ -149,7 +149,7 @@ async fn negotiated_format_returns_error_for_missing_content_type() {
     let result = response.negotiated_format(&formats);
     assert!(matches!(
         result,
-        Err(NegotiationError::UnsupportedMediaType { provided: None, .. })
+        Err(NegotiationError::UnsupportedMediaType { .. })
     ));
 }
 

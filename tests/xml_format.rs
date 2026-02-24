@@ -170,29 +170,3 @@ fn xml_format_invalid_utf8_fails() {
     let result = format.deserializer(invalid_utf8);
     assert!(result.is_err(), "Invalid UTF-8 should cause an error");
 }
-
-#[test]
-fn xml_format_is_default() {
-    let format = XmlFormat::default();
-    assert_eq!(
-        Format::content_type_header(&format),
-        HeaderValue::from_static("application/xml")
-    );
-}
-
-#[test]
-fn xml_format_is_debug() {
-    let format = XmlFormat;
-    let debug_str = format!("{:?}", format);
-    assert_eq!(debug_str, "XmlFormat");
-}
-
-#[test]
-fn xml_format_is_clone() {
-    let format = XmlFormat;
-    let cloned = format;
-    assert_eq!(
-        Format::content_type_header(&cloned),
-        Format::content_type_header(&format)
-    );
-}

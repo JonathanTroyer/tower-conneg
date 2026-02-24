@@ -9,26 +9,23 @@ use http::{HeaderValue, Method, Request, Response, StatusCode, header};
 use pin_project_lite::pin_project;
 use tower::{Layer, Service};
 
-use crate::accept::parse_accept_erased;
-use crate::config::ServerConfig;
-use crate::content_type::parse_content_type_erased;
-use crate::error::NegotiationError;
+use crate::core::{
+    NegotiatedFormat, NegotiationError, ServerConfig, parse_accept_erased,
+    parse_content_type_erased,
+};
 use crate::format::MatchSpecificity;
-use crate::negotiated::NegotiatedFormat;
 use crate::{ACCEPT_PATCH, ACCEPT_POST};
 
 /// Tower layer for server-side content negotiation.
 ///
-/// This layer wraps services to perform content negotiation based on the
-/// `Accept` and `Content-Type` headers. It stores the negotiated formats
-/// in request extensions for downstream extractors.
+/// Stores negotiated formats in request extensions for downstream extractors.
 #[derive(Debug, Clone)]
 pub struct NegotiateLayer {
     config: Arc<ServerConfig>,
 }
 
 impl NegotiateLayer {
-    /// Creates a new negotiate layer with the given configuration.
+    /// Creates a new layer with the given configuration.
     pub fn new(config: ServerConfig) -> Self {
         Self {
             config: Arc::new(config),
@@ -49,9 +46,7 @@ impl<S> Layer<S> for NegotiateLayer {
 
 /// Tower service for server-side content negotiation.
 ///
-/// Parses `Accept` and `Content-Type` headers, selects appropriate formats,
-/// and stores [`NegotiatedFormat`] in request extensions before calling
-/// the inner service.
+/// Parses headers and stores [`NegotiatedFormat`] in request extensions.
 #[derive(Debug, Clone)]
 pub struct NegotiateService<S> {
     inner: S,
@@ -59,19 +54,15 @@ pub struct NegotiateService<S> {
 }
 
 impl<S> NegotiateService<S> {
-    /// Creates a new negotiate service wrapping the inner service.
+    /// Wraps a service with content negotiation.
     pub fn new(inner: S, config: Arc<ServerConfig>) -> Self {
         Self { inner, config }
     }
 }
 
-/// Result of content negotiation.
 enum NegotiateResult {
-    /// Negotiation succeeded with the given formats.
     Success(NegotiatedFormat),
-    /// No acceptable response format (406 Not Acceptable).
     NotAcceptable,
-    /// Unsupported request Content-Type (415 Unsupported Media Type).
     UnsupportedMediaType,
 }
 
@@ -131,7 +122,7 @@ impl<S> NegotiateService<S> {
     fn negotiate_response_format<ReqBody>(
         &self,
         request: &Request<ReqBody>,
-    ) -> Result<Arc<dyn crate::ErasedFormat>, NegotiationError> {
+    ) -> Result<Arc<dyn crate::format::ErasedFormat>, NegotiationError> {
         let accept_header = request
             .headers()
             .get(header::ACCEPT)
@@ -149,10 +140,10 @@ impl<S> NegotiateService<S> {
                     None => {
                         // No match found
                         if self.config.strict {
-                            Err(NegotiationError::NotAcceptable {
-                                requested: Some(accept.to_owned()),
-                                supported: Arc::clone(&self.config.supported_media_types),
-                            })
+                            Err(NegotiationError::not_acceptable(
+                                Some(accept),
+                                &self.config.supported_media_types,
+                            ))
                         } else {
                             Ok(self.config.fallback_format.clone())
                         }
@@ -169,7 +160,7 @@ impl<S> NegotiateService<S> {
     fn negotiate_request_format<ReqBody>(
         &self,
         request: &Request<ReqBody>,
-    ) -> Result<Option<Arc<dyn crate::ErasedFormat>>, NegotiationError> {
+    ) -> Result<Option<Arc<dyn crate::format::ErasedFormat>>, NegotiationError> {
         let content_type = request
             .headers()
             .get(header::CONTENT_TYPE)
@@ -180,10 +171,10 @@ impl<S> NegotiateService<S> {
                 let matched = parse_content_type_erased(ct, &self.config.formats);
                 match matched {
                     Some(f) => Ok(Some(f)),
-                    None => Err(NegotiationError::UnsupportedMediaType {
-                        provided: Some(ct.to_owned()),
-                        supported: Arc::clone(&self.config.supported_media_types),
-                    }),
+                    None => Err(NegotiationError::unsupported_media_type(
+                        Some(ct),
+                        &self.config.supported_media_types,
+                    )),
                 }
             }
             None => Ok(None), // No Content-Type header
@@ -191,21 +182,17 @@ impl<S> NegotiateService<S> {
     }
 }
 
-/// Information for 415 Unsupported Media Type responses.
 struct UnsupportedMediaTypeInfo {
     method: Method,
     accept_header_value: Option<HeaderValue>,
 }
 
 pin_project! {
-    /// Future for the negotiate service.
+    /// Future returned by [`NegotiateService`].
     #[project = NegotiateFutureProj]
     pub enum NegotiateFuture<F, ResBody> {
-        /// Forward to inner service.
         Inner { #[pin] inner: F },
-        /// Return a 406 Not Acceptable response.
         NotAcceptable { _marker: std::marker::PhantomData<ResBody> },
-        /// Return a 415 Unsupported Media Type response with Accept-* header.
         UnsupportedMediaType { info: Option<UnsupportedMediaTypeInfo> },
     }
 }

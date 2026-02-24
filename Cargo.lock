@@ -2743,7 +2743,7 @@ dependencies = [
 
 [[package]]
 name = "tower-conneg"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "bon",
